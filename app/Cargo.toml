@@ -1,0 +1,9 @@
+[package]
+name = "ft4ed-rack-locator"
+version = "0.1.0"
+authors = [ "Jayson Lennon <jayson@club9.com>" ]
+edition = "2018"
+
+[dependencies]
+stdweb = "0.4.14"
+

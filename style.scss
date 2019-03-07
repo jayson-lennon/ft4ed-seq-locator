@@ -1,0 +1,71 @@
+@import "normalize.scss";
+
+// Set up some sane defaults
+html,body,ul,ol {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  background: #ffffff;
+  color: #000000;
+}
+// Set all elements to use proper box-sizing as defined above.
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+h1 {
+  text-align: center;
+}
+
+.scan-loc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scan-loc__input-error > div {
+  padding: 1rem;
+  background: #e47070;
+  font-weight: bold;
+}
+
+.scan-loc__location-picker {
+  text-align: center;
+  font-weight: bold;
+  margin: 1rem;
+  height: 4rem;
+  font-size: 3rem;
+  width: 10rem;
+}
+
+.scan-loc__column-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.scan-loc__column {
+  display: flex;
+  flex-direction: column;
+}
+
+.scan-loc__cell {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: #cacaca;
+  border: 3px solid rgba(255,255,255,1);
+  touch-action: none;
+  box-sizing: content-box;
+}
+
+.scan-loc__cell--selected {
+  background: #ff0000;
+}
+
+.scan-loc__pagination_number {
+  font-weight: bold;
+  font-size: 2rem;
+  margin: 1rem;
+}
