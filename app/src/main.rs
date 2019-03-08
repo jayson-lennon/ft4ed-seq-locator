@@ -11,7 +11,8 @@ use stdweb::traits::*;
 use stdweb::unstable::TryInto;
 use stdweb::web::event::{InputEvent, MouseDownEvent, MouseOverEvent, TouchMove};
 use stdweb::web::html_element::InputElement;
-use stdweb::web::{document, Element};
+use stdweb::web::window;
+use stdweb::web::{document, Element, HtmlElement};
 
 /// Convenience trait to query child elements.
 trait ElementQuery {
@@ -105,18 +106,19 @@ fn insert_adjacent_element(target: &Element, position: InsertPosition, el: &Elem
 }
 
 /// T4ED racks are stored in this fashion:
+/// ```
 /// 80 32 16
 /// .. .. ..
 /// .  8  4
 /// .  7  3
 /// .  6  2
 /// .  5  1
+/// ```
 pub struct T4edRack {
     locations: Vec<Element>,
     dirty_locations: Vec<usize>,
     rack_indicator: Element,
-
-    #[allow(dead_code)]
+    columns: Element,
     parent: Element,
 }
 
@@ -157,6 +159,7 @@ impl T4edRack {
 
         T4edRack {
             parent: parent.clone(),
+            columns,
             locations,
             dirty_locations: vec![],
             rack_indicator,
@@ -207,6 +210,14 @@ impl T4edRack {
         }
         self.dirty_locations.clear();
     }
+
+    pub fn parent(&self) -> &Element {
+        &self.parent
+    }
+
+    pub fn columns(&self) -> &Element {
+        &self.columns
+    }
 }
 
 macro_rules! eq_variant {
@@ -233,6 +244,7 @@ impl ErrorDisplay {
     pub fn add_error(&mut self, error: RackError) {
         if !self.errors.iter().any(|e| eq_variant!(&e.0, &error)) {
             let el = document().create_element("div").unwrap();
+            el.class_list().add("scan-loc__error");
             el.set_text_content(&format!("{}", error));
             self.container.append_child(&el);
             self.errors.push((error, el));
@@ -261,9 +273,34 @@ fn document_query_selector(query: &str) -> Result<Element, AppError> {
         .ok_or_else(|| AppError::MissingElement(query.to_owned()))
 }
 
-fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &str) {
+fn set_max_height(el: &Element, max_px_height: f64) {
+    el.set_attribute("style", &format!("max-height: {}px", max_px_height));
+    console!(log, "set max height = {}", max_px_height);
+}
+
+fn scroll_to_element(el: &Element) {
+    let el: HtmlElement = el.clone().try_into().unwrap();
+    let rect = el.get_bounding_client_rect();
+    let scroll_top = window().page_y_offset();
+    let y = rect.get_top();
+    let target = y + scroll_top;
+
+    js! { @(no_return)
+        window.scrollTo(0, @{target});
+    }
+    console!(log, "scroll to={}", target);
+}
+
+fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &str, scroll: bool) {
     match parse_usize(value) {
         Ok(seq) => {
+            let height = window().inner_height();
+            let container = document_query_selector(".scan-loc__location-display").unwrap();
+            set_max_height(&rack.columns, height as f64);
+            if scroll {
+                scroll_to_element(&rack.columns);
+            }
+
             errors.clear_error(RackError::NotANumber);
             if !rack.highlight_location(seq) {
                 errors.add_error(RackError::OutOfRange(1, 160));
@@ -318,7 +355,7 @@ mod cell_events {
             let mut app = app.borrow_mut();
             let mut errors = errors.borrow_mut();
             input.set_raw_value(&raw_value);
-            handle_input_change(&mut app, &mut errors, &raw_value);
+            handle_input_change(&mut app, &mut errors, &raw_value, false);
         });
     }
 
@@ -336,7 +373,7 @@ mod cell_events {
             let raw_value = target.get_attribute("data-seq").unwrap();
             input.set_raw_value(&raw_value);
             let (mut app, mut errors) = (app.borrow_mut(), errors.borrow_mut());
-            handle_input_change(&mut app, &mut errors, &raw_value);
+            handle_input_change(&mut app, &mut errors, &raw_value, false);
         });
     }
 
@@ -354,7 +391,7 @@ mod cell_events {
             let raw_value = target.get_attribute("data-seq").unwrap();
             input.set_raw_value(&raw_value);
             let (mut app, mut errors) = (app.borrow_mut(), errors.borrow_mut());
-            handle_input_change(&mut app, &mut errors, &raw_value);
+            handle_input_change(&mut app, &mut errors, &raw_value, false);
         });
     }
 }
@@ -364,7 +401,7 @@ fn run() -> Result<(), AppError> {
     let app = Rc::new(RefCell::new(T4edRack::new(&mount_point)));
 
     let location_picker = mount_point.query(".scan-loc__location-picker")?;
-    let input_error_display = mount_point.query(".scan-loc__input-error")?;
+    let input_error_display = mount_point.query(".scan-loc__errors")?;
     let errors = Rc::new(RefCell::new(ErrorDisplay::new(input_error_display)));
 
     // Reset when page load. This is needed in case the user refreshes the page and there is a
@@ -373,7 +410,7 @@ fn run() -> Result<(), AppError> {
         let input: InputElement = location_picker.clone().try_into().unwrap();
         let mut app = app.borrow_mut();
         let mut errors = errors.borrow_mut();
-        handle_input_change(&mut app, &mut errors, &input.raw_value());
+        handle_input_change(&mut app, &mut errors, &input.raw_value(), true);
     }
 
     // Bind to InputEvent. This will handle manual user input on the input box.
@@ -385,7 +422,7 @@ fn run() -> Result<(), AppError> {
             let raw_value = target.raw_value();
             let mut app = app.borrow_mut();
             let mut errors = errors.borrow_mut();
-            handle_input_change(&mut app, &mut errors, &raw_value);
+            handle_input_change(&mut app, &mut errors, &raw_value, true);
         });
     }
 

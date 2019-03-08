@@ -5,12 +5,15 @@ html
     meta(name="viewport" content="width=device-width, initial-scale=1.0")
     link(href="style.scss" rel="stylesheet")
   body
-    h1 FT4ED Visual Sequence Locator
+    main
+      h1 FT4ED Visual Sequence Locator
 
-    div.scan-loc
-      div.scan-loc__input-error
-      input.scan-loc__location-picker(type="number")
-      div.scan-loc__column-container
-      div.scan-loc__pagination_number
+      div.scan-loc
+        div.scan-loc__location-display
+          div.scan-loc__column-container
+          div.scan-loc__pagination_number
+        div.scan-loc__user-input
+          div.scan-loc__errors
+          input.scan-loc__location-picker(type="number" placeholder="Seq#" onclick="this.select();" onfocus="this.select();")
 
   script(src="./loader.js")
