@@ -11,6 +11,10 @@ html,body,ul,ol {
   color: #000000;
 }
 
+@mixin media-at-least($break) {
+  @media (min-width: $break) { @content; }
+}
+
 // Set all elements to use proper box-sizing as defined above.
 *, *:before, *:after {
   box-sizing: inherit;
@@ -24,25 +28,52 @@ h1 {
   text-align: center;
 }
 
-.scan-loc {
+.scan-loc__right-pane {
   display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column;
+}
+
+@include media-at-least(500px) {
+  .scan-loc__title {
+    order: 2;
+  }
+  .scan-loc__user-input {
+    order: 1;
+  }
+  .scan-loc__errors {
+    order: 2;
+  }
+  .scan-loc__location-picker {
+    order: 1;
+  }
+}
+
+
+.scan-loc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.scan-loc__title {
+  font-weight: bold;
+  font-size: 2rem;
+  text-align: center;
 }
 
 .scan-loc__errors {
 }
 
 .scan-loc__error {
-  padding: 1rem;
+  padding: 0.5rem;
   background: #e47070;
   font-weight: bold;
+  text-align: center;
 }
 
 .scan-loc__user-input {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  justify-items: center;
   align-items: center;
 }
 

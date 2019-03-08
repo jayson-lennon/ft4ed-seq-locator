@@ -6,14 +6,16 @@ html
     link(href="style.scss" rel="stylesheet")
   body
     main
-      h1 FT4ED Visual Sequence Locator
 
       div.scan-loc
-        div.scan-loc__location-display
-          div.scan-loc__column-container
-          div.scan-loc__pagination_number
-        div.scan-loc__user-input
-          div.scan-loc__errors
-          input.scan-loc__location-picker(type="number" placeholder="Seq#" onclick="this.select();" onfocus="this.select();")
+        section
+          div.scan-loc__location-display
+            div.scan-loc__column-container
+            div.scan-loc__pagination_number
+        section.scan-loc__right-pane
+          div.scan-loc__title FT4ED Visual Sequence Locator
+          div.scan-loc__user-input
+            div.scan-loc__errors
+            input.scan-loc__location-picker(type="number" placeholder="Seq#" onclick="this.select();" onfocus="this.select();")
 
   script(src="./loader.js")
