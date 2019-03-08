@@ -2,7 +2,9 @@
 
 [screenshot](screenshot.jpg)
 
-This is a small tool I wrote in order to determine the location of a FT4ED specimen tube before it gets scanned into a proper location.
+This is a small tool that determines the physical location of a FT4ED specimen tube while it is in a load rack, given the sequence number.
+
+## Description
 
 All tubes are stored in "loads" prior to being scanned into a proper trackable location.
 FT4ED loads are kept in a 16x5 configuration spanning two racks with sequence numbers up to 180.
@@ -12,6 +14,17 @@ This tool displays a diagram of a FT4ED load rack and allows the user to enter a
 Once the user enters a sequence number, the application will highlight the location on the diagram where the tube may be located.
 
 Alternatively, the user can drag their finger across the diagram and the application will display which sequence number has been highlighted.
+
+## How To Build
+
+This tool is built using the [Parcel](https://parceljs.org/) web bundler.
+
+To setup & build, ensure that `npm, `parcel`, and `rust`, are properly installed, then run:
+
+```
+npm install
+parcel index.pug
+```
 
 ---
 
