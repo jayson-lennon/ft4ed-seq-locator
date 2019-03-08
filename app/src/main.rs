@@ -1,3 +1,5 @@
+#![allow(clippy::pedantic)]
+
 #[macro_use]
 extern crate stdweb;
 
@@ -7,26 +9,32 @@ use std::num::ParseIntError;
 use std::rc::Rc;
 use stdweb::traits::*;
 use stdweb::unstable::TryInto;
-use stdweb::web::event::{ChangeEvent, InputEvent, MouseDownEvent, MouseOverEvent, TouchMove};
+use stdweb::web::event::{InputEvent, MouseDownEvent, MouseOverEvent, TouchMove};
 use stdweb::web::html_element::InputElement;
 use stdweb::web::{document, Element};
 
+/// Convenience trait to query child elements.
 trait ElementQuery {
     fn query(&self, query: &str) -> Result<Element, AppError>;
 }
 
 impl ElementQuery for Element {
+    /// Input query should always be well-formed.
     fn query(&self, query: &str) -> Result<Element, AppError> {
         self.query_selector(query)
-            .unwrap()
-            .ok_or(AppError::MissingElement(query.to_owned()))
+            .expect("Malformed query selector")
+            .ok_or_else(|| AppError::MissingElement(query.to_owned()))
     }
 }
 
+/// Shorthand to create a div.
 fn div() -> Element {
     document().create_element("div").unwrap()
 }
 
+/// Get the element located under the position (`x`, `y`). Coordinates are relative to the
+/// viewport.
+// TODO: Get this implemented in stdweb.
 fn element_from_point(x: f64, y: f64) -> Option<Element> {
     let el = js! {
         var el = document.elementFromPoint(@{x}, @{y});
@@ -49,7 +57,7 @@ impl fmt::Display for AppError {
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-enum RackError {
+pub enum RackError {
     OutOfRange(usize, usize),
     NotANumber,
 }
@@ -66,16 +74,11 @@ impl fmt::Display for RackError {
 }
 
 fn parse_usize(value: &str) -> Result<usize, ParseIntError> {
-    match usize::from_str_radix(value, 10) {
-        Ok(n) => Ok(n),
-        Err(e) => {
-            let s = format!("invalid number: {:?} - {}", value, e);
-            Err(e)
-        }
-    }
+    usize::from_str_radix(value, 10)
 }
 
 // InsertPosition taken from webapi module in stdweb
+#[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum InsertPosition {
     BeforeBegin,
@@ -108,14 +111,17 @@ fn insert_adjacent_element(target: &Element, position: InsertPosition, el: &Elem
 /// .  7  3
 /// .  6  2
 /// .  5  1
-struct T4edRack {
+pub struct T4edRack {
     locations: Vec<Element>,
     dirty_locations: Vec<usize>,
-    parent: Element,
     rack_indicator: Element,
+
+    #[allow(dead_code)]
+    parent: Element,
 }
 
 impl T4edRack {
+    #[allow(unused_must_use)]
     pub fn new(parent: &Element) -> Self {
         let columns = parent.query(".scan-loc__column-container").unwrap();
 
@@ -165,16 +171,7 @@ impl T4edRack {
         self.rack_indicator.set_text_content("");
     }
 
-    pub fn rack_number(&self) -> usize {
-        parse_usize(
-            &self
-                .rack_indicator
-                .text_content()
-                .unwrap_or_else(|| "1".to_owned()),
-        )
-        .unwrap()
-    }
-
+    #[allow(unused_must_use)]
     pub fn highlight_location(&mut self, seq: usize) -> bool {
         if seq > 160 {
             return false;
@@ -201,6 +198,7 @@ impl T4edRack {
         }
     }
 
+    #[allow(unused_must_use)]
     pub fn deactivate_all(&mut self) {
         for el in self.dirty_locations.iter() {
             self.locations[*el]
@@ -211,7 +209,14 @@ impl T4edRack {
     }
 }
 
-struct ErrorDisplay {
+macro_rules! eq_variant {
+    ($e1:expr, $e2:expr) => {
+        std::mem::discriminant($e1) == std::mem::discriminant($e2)
+    };
+}
+
+/// Possible errors that may occur when processing a scan location.
+pub struct ErrorDisplay {
     container: Element,
     errors: Vec<(RackError, Element)>,
 }
@@ -224,12 +229,9 @@ impl ErrorDisplay {
         }
     }
 
+    /// Add a new error to the display.
     pub fn add_error(&mut self, error: RackError) {
-        if !self
-            .errors
-            .iter()
-            .any(|e| std::mem::discriminant(&e.0) == std::mem::discriminant(&error))
-        {
+        if !self.errors.iter().any(|e| eq_variant!(&e.0, &error)) {
             let el = document().create_element("div").unwrap();
             el.set_text_content(&format!("{}", error));
             self.container.append_child(&el);
@@ -237,36 +239,26 @@ impl ErrorDisplay {
         }
     }
 
+    /// Clear a specific error.
     pub fn clear_error(&mut self, error: RackError) {
-        if let Some(i) = self
-            .errors
-            .iter()
-            .position(|e| std::mem::discriminant(&e.0) == std::mem::discriminant(&error))
-        {
+        if let Some(i) = self.errors.iter().position(|e| eq_variant!(&e.0, &error)) {
             let (_, el) = self.errors.remove(i);
             el.remove();
         }
     }
 
+    /// Clear all errors
+    #[allow(dead_code)]
     pub fn clear_all(&mut self) {
-        for i in 0..self.errors.len() {
-            let (_, el) = self.errors.remove(i);
-            el.remove();
-        }
+        self.errors.clear();
     }
-}
-
-fn get_element_by_id(id: &str) -> Result<Element, AppError> {
-    document()
-        .get_element_by_id(id)
-        .ok_or(AppError::MissingElement(id.to_owned()))
 }
 
 fn document_query_selector(query: &str) -> Result<Element, AppError> {
     document()
         .query_selector(query)
         .unwrap()
-        .ok_or(AppError::MissingElement(query.to_owned()))
+        .ok_or_else(|| AppError::MissingElement(query.to_owned()))
 }
 
 fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &str) {
@@ -286,7 +278,7 @@ fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &s
                 }
             }
         }
-        Err(e) => {
+        Err(_) => {
             rack.clear_rack_number();
             errors.clear_error(RackError::OutOfRange(0, 0));
             rack.deactivate_all();
@@ -299,25 +291,98 @@ fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &s
     }
 }
 
+/// Contains event listeners for individual cells.
+mod cell_events {
+    use super::*;
+
+    pub fn bind_touch(
+        cell: &Element,
+        app: Rc<RefCell<T4edRack>>,
+        errors: Rc<RefCell<ErrorDisplay>>,
+        location_picker: &Element,
+    ) {
+        let app = app.clone();
+        let errors = errors.clone();
+        let input: InputElement = location_picker.clone().try_into().unwrap();
+        cell.add_event_listener(move |ev: TouchMove| {
+            let touch = &ev.touches()[0];
+            let (x, y) = (touch.client_x(), touch.client_y());
+            let target: Element = match element_from_point(x, y) {
+                Some(el) => el,
+                None => return,
+            };
+            let raw_value = match target.get_attribute("data-seq") {
+                Some(v) => v,
+                None => return,
+            };
+            let mut app = app.borrow_mut();
+            let mut errors = errors.borrow_mut();
+            input.set_raw_value(&raw_value);
+            handle_input_change(&mut app, &mut errors, &raw_value);
+        });
+    }
+
+    pub fn bind_mouse_over(
+        cell: &Element,
+        app: Rc<RefCell<T4edRack>>,
+        errors: Rc<RefCell<ErrorDisplay>>,
+        location_picker: &Element,
+    ) {
+        let app = app.clone();
+        let errors = errors.clone();
+        let input: InputElement = location_picker.clone().try_into().unwrap();
+        cell.add_event_listener(move |ev: MouseOverEvent| {
+            let target: Element = ev.target().unwrap().try_into().unwrap();
+            let raw_value = target.get_attribute("data-seq").unwrap();
+            input.set_raw_value(&raw_value);
+            let mut app = app.borrow_mut();
+            let mut errors = errors.borrow_mut();
+            handle_input_change(&mut app, &mut errors, &raw_value);
+        });
+    }
+
+    pub fn bind_mouse_down(
+        cell: &Element,
+        app: Rc<RefCell<T4edRack>>,
+        errors: Rc<RefCell<ErrorDisplay>>,
+        location_picker: &Element,
+    ) {
+        let app = app.clone();
+        let errors = errors.clone();
+        let input: InputElement = location_picker.clone().try_into().unwrap();
+        cell.add_event_listener(move |ev: MouseDownEvent| {
+            let target: Element = ev.target().unwrap().try_into().unwrap();
+            let raw_value = target.get_attribute("data-seq").unwrap();
+            input.set_raw_value(&raw_value);
+            let mut app = app.borrow_mut();
+            let mut errors = errors.borrow_mut();
+            handle_input_change(&mut app, &mut errors, &raw_value);
+        });
+    }
+}
+
 fn run() -> Result<(), AppError> {
     let mount_point = document_query_selector(".scan-loc")?;
-    let mut app = Rc::new(RefCell::new(T4edRack::new(&mount_point)));
+    let app = Rc::new(RefCell::new(T4edRack::new(&mount_point)));
 
-    let input_box = mount_point.query(".scan-loc__location-picker")?;
+    let location_picker = mount_point.query(".scan-loc__location-picker")?;
     let input_error_display = mount_point.query(".scan-loc__input-error")?;
-    let mut errors = Rc::new(RefCell::new(ErrorDisplay::new(input_error_display)));
+    let errors = Rc::new(RefCell::new(ErrorDisplay::new(input_error_display)));
 
+    // Reset when page load. This is needed in case the user refreshes the page and there is a
+    // value remaining in the input box.
     {
-        let input: InputElement = input_box.clone().try_into().unwrap();
+        let input: InputElement = location_picker.clone().try_into().unwrap();
         let mut app = app.borrow_mut();
         let mut errors = errors.borrow_mut();
         handle_input_change(&mut app, &mut errors, &input.raw_value());
     }
 
+    // Bind to InputEvent. This will handle manual user input on the input box.
     {
         let app = app.clone();
         let errors = errors.clone();
-        input_box.add_event_listener(move |ev: InputEvent| {
+        location_picker.add_event_listener(move |ev: InputEvent| {
             let target: InputElement = ev.target().unwrap().try_into().unwrap();
             let raw_value = target.raw_value();
             let mut app = app.borrow_mut();
@@ -326,68 +391,13 @@ fn run() -> Result<(), AppError> {
         });
     }
 
-    {
-        let app = app.clone();
-        let errors = errors.clone();
-        input_box.add_event_listener(move |ev: ChangeEvent| {
-            let target: InputElement = ev.target().unwrap().try_into().unwrap();
-            let raw_value = target.raw_value();
-            let mut app = app.borrow_mut();
-            let mut errors = errors.borrow_mut();
-            handle_input_change(&mut app, &mut errors, &raw_value);
-        });
-    }
-
+    // Here we bind each cell to allow touch and mouse interactivity.
     let cells = mount_point.query_selector_all(".scan-loc__cell").unwrap();
     for cell in cells.iter() {
-        {
-            let app = app.clone();
-            let errors = errors.clone();
-            let input: InputElement = input_box.clone().try_into().unwrap();
-            cell.add_event_listener(move |ev: TouchMove| {
-                let touch = &ev.touches()[0];
-                let (x, y) = (touch.client_x(), touch.client_y());
-                let target: Element = match element_from_point(x, y) {
-                    Some(el) => el,
-                    None => return,
-                };
-                let raw_value = match target.get_attribute("data-seq") {
-                    Some(v) => v,
-                    None => return,
-                };
-                let mut app = app.borrow_mut();
-                let mut errors = errors.borrow_mut();
-                input.set_raw_value(&raw_value);
-                handle_input_change(&mut app, &mut errors, &raw_value);
-            });
-        }
-        {
-            let app = app.clone();
-            let errors = errors.clone();
-            let input: InputElement = input_box.clone().try_into().unwrap();
-            cell.add_event_listener(move |ev: MouseOverEvent| {
-                let target: Element = ev.target().unwrap().try_into().unwrap();
-                let raw_value = target.get_attribute("data-seq").unwrap();
-                input.set_raw_value(&raw_value);
-                let mut app = app.borrow_mut();
-                let mut errors = errors.borrow_mut();
-                handle_input_change(&mut app, &mut errors, &raw_value);
-            });
-        }
-
-        {
-            let app = app.clone();
-            let errors = errors.clone();
-            let input: InputElement = input_box.clone().try_into().unwrap();
-            cell.add_event_listener(move |ev: MouseDownEvent| {
-                let target: Element = ev.target().unwrap().try_into().unwrap();
-                let raw_value = target.get_attribute("data-seq").unwrap();
-                input.set_raw_value(&raw_value);
-                let mut app = app.borrow_mut();
-                let mut errors = errors.borrow_mut();
-                handle_input_change(&mut app, &mut errors, &raw_value);
-            });
-        }
+        let cell: Element = cell.try_into().unwrap();
+        cell_events::bind_touch(&cell, app.clone(), errors.clone(), &location_picker);
+        cell_events::bind_mouse_over(&cell, app.clone(), errors.clone(), &location_picker);
+        cell_events::bind_mouse_down(&cell, app.clone(), errors.clone(), &location_picker);
     }
 
     Ok(())
