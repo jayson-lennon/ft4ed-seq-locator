@@ -99,6 +99,8 @@ impl InsertPosition {
     }
 }
 
+/// stdweb currently doesn't have this function.
+// TODO: Get this implemented in stdweb.
 fn insert_adjacent_element(target: &Element, position: InsertPosition, el: &Element) {
     js! { @(no_return)
         @{target.as_ref()}.insertAdjacentElement(@{position.as_str()}, @{el.as_ref()});
@@ -194,6 +196,7 @@ impl T4edRack {
             self.locations[seq]
                 .class_list()
                 .add("scan-loc__cell--selected");
+            // Set this cell as dirty so it can be "unselected" later when needed.
             self.dirty_locations.push(seq);
             true
         } else {
@@ -220,6 +223,7 @@ impl T4edRack {
     }
 }
 
+/// Simple helper to determine if the variant of an enum is the same.
 macro_rules! eq_variant {
     ($e1:expr, $e2:expr) => {
         std::mem::discriminant($e1) == std::mem::discriminant($e2)
@@ -241,6 +245,7 @@ impl ErrorDisplay {
     }
 
     /// Add a new error to the display.
+    #[allow(unused_must_use)]
     pub fn add_error(&mut self, error: RackError) {
         if !self.errors.iter().any(|e| eq_variant!(&e.0, &error)) {
             let el = document().create_element("div").unwrap();
@@ -273,10 +278,13 @@ fn document_query_selector(query: &str) -> Result<Element, AppError> {
         .ok_or_else(|| AppError::MissingElement(query.to_owned()))
 }
 
+/// Changes the max-height property of an element.
+#[allow(unused_must_use)]
 fn set_max_height(el: &Element, max_px_height: f64) {
     el.set_attribute("style", &format!("max-height: {}px", max_px_height));
 }
 
+/// Scrolls the page to an element. Only scrolls vertically.
 fn scroll_to_element(el: &Element) {
     let el: HtmlElement = el.clone().try_into().unwrap();
     let rect = el.get_bounding_client_rect();
@@ -289,12 +297,16 @@ fn scroll_to_element(el: &Element) {
     }
 }
 
+/// Fired when the highlighted cell should be updated.
 fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &str, scroll: bool) {
     match parse_usize(value) {
         Ok(seq) => {
+            // Adjust the highet of the location display.
             let height = window().inner_height();
-            let container = document_query_selector(".scan-loc__location-display").unwrap();
-            set_max_height(&rack.columns, height as f64);
+            set_max_height(&rack.columns, f64::from(height));
+
+            // We only want to scroll when the user is typing in the input field, but not when the
+            // user is selecting a cell visually.
             if scroll {
                 scroll_to_element(&rack.columns);
             }
@@ -317,6 +329,7 @@ fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &s
             rack.clear_rack_number();
             errors.clear_error(RackError::OutOfRange(0, 0));
             rack.deactivate_all();
+            // Empty input box.
             if value == "" {
                 errors.clear_error(RackError::NotANumber);
             } else {
@@ -396,13 +409,15 @@ mod cell_events {
 
 fn run() -> Result<(), AppError> {
     let mount_point = document_query_selector(".scan-loc")?;
+
+    // Wrap in Rc<RefCell> in order to access in event listeners.
     let app = Rc::new(RefCell::new(T4edRack::new(&mount_point)));
 
     let location_picker = mount_point.query(".scan-loc__location-picker")?;
     let input_error_display = mount_point.query(".scan-loc__errors")?;
     let errors = Rc::new(RefCell::new(ErrorDisplay::new(input_error_display)));
 
-    // Reset when page load. This is needed in case the user refreshes the page and there is a
+    // Reset when page loads. This is needed in case the user refreshes the page and there is a
     // value remaining in the input box.
     {
         let input: InputElement = location_picker.clone().try_into().unwrap();
@@ -424,7 +439,7 @@ fn run() -> Result<(), AppError> {
         });
     }
 
-    // Here we bind each cell to allow touch and mouse interactivity.
+    // Bind each cell to allow touch and mouse interactivity.
     let cells = mount_point.query_selector_all(".scan-loc__cell").unwrap();
     for cell in cells.iter() {
         let cell: Element = cell.try_into().unwrap();
