@@ -275,7 +275,6 @@ fn document_query_selector(query: &str) -> Result<Element, AppError> {
 
 fn set_max_height(el: &Element, max_px_height: f64) {
     el.set_attribute("style", &format!("max-height: {}px", max_px_height));
-    console!(log, "set max height = {}", max_px_height);
 }
 
 fn scroll_to_element(el: &Element) {
@@ -288,7 +287,6 @@ fn scroll_to_element(el: &Element) {
     js! { @(no_return)
         window.scrollTo(0, @{target});
     }
-    console!(log, "scroll to={}", target);
 }
 
 fn handle_input_change(rack: &mut T4edRack, errors: &mut ErrorDisplay, value: &str, scroll: bool) {
