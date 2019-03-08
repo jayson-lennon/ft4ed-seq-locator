@@ -21,11 +21,11 @@ Alternatively, the user can drag their finger across the diagram and the applica
 
 This tool is built using the [Parcel](https://parceljs.org/) web bundler.
 
-To setup & build, ensure that `npm`, `parcel`, and `rust`, are properly installed, then run:
+To build, ensure that `npm`, `parcel`, and `rust`, are properly installed, then run:
 
 ```
 npm install
-parcel index.pug
+parcel build index.pug
 ```
 
 ## About
