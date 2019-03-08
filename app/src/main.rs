@@ -335,8 +335,7 @@ mod cell_events {
             let target: Element = ev.target().unwrap().try_into().unwrap();
             let raw_value = target.get_attribute("data-seq").unwrap();
             input.set_raw_value(&raw_value);
-            let mut app = app.borrow_mut();
-            let mut errors = errors.borrow_mut();
+            let (mut app, mut errors) = (app.borrow_mut(), errors.borrow_mut());
             handle_input_change(&mut app, &mut errors, &raw_value);
         });
     }
@@ -354,8 +353,7 @@ mod cell_events {
             let target: Element = ev.target().unwrap().try_into().unwrap();
             let raw_value = target.get_attribute("data-seq").unwrap();
             input.set_raw_value(&raw_value);
-            let mut app = app.borrow_mut();
-            let mut errors = errors.borrow_mut();
+            let (mut app, mut errors) = (app.borrow_mut(), errors.borrow_mut());
             handle_input_change(&mut app, &mut errors, &raw_value);
         });
     }
