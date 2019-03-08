@@ -1,13 +1,10 @@
 {
-  "name": "alert",
+  "name": "ft4ed-seq-locator",
   "version": "1.0.0",
-  "description": "test",
-  "main": "index.js",
-  "scripts": {
-    "test": "test"
-  },
-  "author": "",
-  "license": "ISC",
+  "description": "Displays the location of a tube in a FT4ED load based on sequence number.",
+  "main": "loader.js",
+  "author": "Jayson Lennon",
+  "license": "MIT",
   "dependencies": {
     "parcel-plugin-cargo-web": "^0.3.1"
   },
