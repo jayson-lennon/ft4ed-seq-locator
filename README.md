@@ -1,8 +1,10 @@
 # FT4ED Sequence Locator
 
+This is a small tool that determines the physical location of a FT4ED specimen tube while it is in a load rack, given the sequence number.
+
 ![screenshot](screenshot.png)
 
-This is a small tool that determines the physical location of a FT4ED specimen tube while it is in a load rack, given the sequence number.
+License: MIT
 
 ## Description
 
@@ -19,14 +21,14 @@ Alternatively, the user can drag their finger across the diagram and the applica
 
 This tool is built using the [Parcel](https://parceljs.org/) web bundler.
 
-To setup & build, ensure that `npm, `parcel`, and `rust`, are properly installed, then run:
+To setup & build, ensure that `npm`, `parcel`, and `rust`, are properly installed, then run:
 
 ```
 npm install
 parcel index.pug
 ```
 
----
+## About
 
 The target device for this application is mobile.
 Care was taken to ensure fast operation and proper functionality in both portrait and landscape modes.
@@ -36,6 +38,3 @@ However, the usability of the application in landscape mode is limited due to th
 
 This tool was written in about a day as a learning exercise for the current Rust to WASM workflow.
 
----
-
-License: MIT
