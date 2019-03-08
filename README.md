@@ -1,6 +1,6 @@
 # FT4ED Sequence Locator
 
-[screenshot](screenshot.jpg)
+![screenshot](screenshot.png)
 
 This is a small tool that determines the physical location of a FT4ED specimen tube while it is in a load rack, given the sequence number.
 
